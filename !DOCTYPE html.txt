@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Ocean Explorer - Story Mode</title>
+
+<style>
+body{
+ margin:0;
+ font-family:Arial;
+ background:linear-gradient(#04121f,#06324f);
+ color:white;
+ text-align:center;
+ overflow:hidden;
+}
+
+header{
+ padding:10px;
+ background:#0b1f33;
+}
+
+canvas{
+ border:3px solid #1e3a5f;
+ background:radial-gradient(circle at center,#2aa7ff,#001a33);
+}
+
+#panel{
+ margin:10px;
+ padding:10px;
+ background:#102a44;
+}
+
+#ui{
+ display:flex;
+ justify-content:center;
+ gap:10px;
+ padding:10px;
+ background:#12263a;
+ flex-wrap:wrap;
+}
+
+#storyBox{
+ margin:10px auto;
+ padding:10px;
+ background:#0b1f33;
+ max-width:700px;
+ border:1px solid #2aa7ff;
+}
+
+#endScreen{
+ position:fixed;
+ top:0;left:0;
+ width:100%;height:100%;
+ background:rgba(0,0,0,0.85);
+ display:none;
+ align-items:center;
+ justify-content:center;
+ flex-direction:column;
+ font-size:22px;
+}
+
+button{padding:6px 10px; cursor:pointer;}
+</style>
+</head>
+
+<body>
+
+<header>
+<h1>Ocean Explorer 🌊 - Story Mode</h1>
+<p>Marine research mission under a warming ocean</p>
+</header>
+
+<div id="storyBox">
+<div id="chapter">Chapter 1: The Bleaching Begins</div>
+<div id="mission">Mission: Collect 5 coral samples for research</div>
+</div>
+
+<div id="panel">
+<div id="stats">Samples: 0 | Oxygen: 100% | Temp: 20°C</div>
+</div>
+
+<canvas id="c" width="850" height="450"></canvas>
+
+<div id="ui">
+<button onclick="reset()">Restart Mission</button>
+</div>
+
+<div id="endScreen"></div>
+
+<script>
+const c=document.getElementById("c");
+const ctx=c.getContext("2d");
+
+let player={x:425,y:225,speed:3,oxygen:100};
+let keys={};
+
+let coralSamples=0;
+let totalSamples=0;
+
+let oceanTemp=20;
+let gameOver=false;
+
+// STORY SYSTEM
+const story=[
+{
+chapter:"Chapter 1: The Bleaching Begins",
+mission:"Collect 5 coral samples for research",
+goal:5,
+text:"Scientists report coral bleaching in this region..."
+},
+{
+chapter:"Chapter 2: Vanishing Fish",
+mission:"Collect 10 samples while fish populations decline",
+goal:10,
+text:"Fish are migrating due to rising ocean temperatures..."
+},
+{
+chapter:"Chapter 3: Ocean Crisis",
+mission:"Reach 15 samples before ecosystem collapse",
+goal:15,
+text:"The ocean is approaching critical temperature levels..."
+}
+];
+
+let level=0;
+
+// spawn collectibles
+let items=[];
+for(let i=0;i<10;i++){
+ items.push({x:Math.random()*c.width,y:Math.random()*c.height,got:false});
+}
+
+document.addEventListener("keydown",e=>keys[e.key]=true);
+document.addEventListener("keyup",e=>keys[e.key]=false);
+
+function movePlayer(){
+if(keys["w"])player.y-=player.speed;
+if(keys["s"])player.y+=player.speed;
+if(keys["a"])player.x-=player.speed;
+if(keys["d"])player.x+=player.speed;
+
+player.x=Math.max(0,Math.min(c.width,player.x));
+player.y=Math.max(0,Math.min(c.height,player.y));
+}
+
+function checkItems(){
+items.forEach(i=>{
+ if(!i.got && Math.hypot(player.x-i.x,player.y-i.y)<15){
+  i.got=true;
+  coralSamples++;
+  totalSamples++;
+ }
+});
+}
+
+function nextChapter(){
+level++;
+if(level>=story.length){
+ endGame(true,"You completed all ocean research missions 🌊🧠");
+ return;
+}
+
+coralSamples=0;
+items=[];
+for(let i=0;i<10;i++){
+ items.push({x:Math.random()*c.width,y:Math.random()*c.height,got:false});
+}
+
+document.getElementById("chapter").innerText=story[level].chapter;
+document.getElementById("mission").innerText=story[level].mission;
+}
+
+function checkMission(){
+if(coralSamples>=story[level].goal){
+ nextChapter();
+}
+}
+
+function checkHazards(){
+player.oxygen-=0.02;
+oceanTemp+=0.015;
+
+if(player.oxygen<=0){
+ endGame(false,"You ran out of oxygen 🫧");
+}
+
+if(oceanTemp>70){
+ endGame(false,"Ocean overheated - ecosystem collapse 🌡️");
+}
+}
+
+function draw(){
+ctx.clearRect(0,0,c.width,c.height);
+
+// items
+items.forEach(i=>{
+ if(!i.got){
+  ctx.fillStyle="yellow";
+  ctx.beginPath();
+  ctx.arc(i.x,i.y,5,0,Math.PI*2);
+  ctx.fill();
+ }
+});
+
+// player
+ctx.fillStyle="white";
+ctx.beginPath();
+ctx.arc(player.x,player.y,6,0,Math.PI*2);
+ctx.fill();
+}
+
+function endGame(win,msg){
+gameOver=true;
+document.getElementById("endScreen").style.display="flex";
+document.getElementById("endScreen").innerHTML=
+`<h1>${win?"MISSION COMPLETE":"MISSION FAILED"}</h1>
+<p>${msg}</p>
+<button onclick="reset()">Restart Story</button>`;
+}
+
+function loop(){
+if(gameOver)return;
+
+movePlayer();
+checkItems();
+checkMission();
+checkHazards();
+draw();
+
+document.getElementById("stats").innerText =
+"Samples: "+coralSamples+
+" | Oxygen: "+player.oxygen.toFixed(0)+"%"+
+" | Temp: "+oceanTemp.toFixed(1)+"°C";
+
+requestAnimationFrame(loop);
+}
+
+function reset(){
+location.reload();
+}
+
+loop();
+</script>
+
+</body>
+</html>
